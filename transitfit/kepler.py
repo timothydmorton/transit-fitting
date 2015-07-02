@@ -20,7 +20,7 @@ def lc_dataframe(lc):
 
     return pd.DataFrame(data)    
 
-def all_LCdata(koi, mask_bad=True):
+def all_LCdata(koi, mask_bad=False):
     """
     Returns all data for a given koi, in a pandas dataframe
 
@@ -35,6 +35,8 @@ def all_LCdata(koi, mask_bad=True):
             
     if mask_bad:
         ok = np.isfinite(df['PDCSAP_FLUX']) & (df['SAP_QUALITY']==0)
+    else:
+        ok = np.ones(len(df)).astype(bool)
     return df[ok]
 
 class KeplerTransitModel(TransitModel):
@@ -53,6 +55,8 @@ class KeplerTransitModel(TransitModel):
         koi = client.koi(koinum + 0.01)
         count = koi.koi_count
         lcdata = all_LCdata(koi)
+
+        mask = ~np.isfinite(lcdata['PDCSAP_FLUX']) | lcdata['SAP_QUALITY']
 
         if type(i)==int:
             ilist = [i]
@@ -79,6 +83,7 @@ class KeplerTransitModel(TransitModel):
         super(KeplerTransitModel, self).__init__(lcdata['TIME'],
                                                  lcdata['PDCSAP_FLUX'],
                                                  lcdata['PDCSAP_FLUX_ERR'],
+                                                 mask=mask,
                                                  period=periods, epoch=epochs,
                                                  duration=durations, texp=KEPLER_CADENCE)
 

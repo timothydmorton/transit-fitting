@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+from numpy import ma
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -24,9 +25,17 @@ class TransitModel(object):
         
     """
     def __init__(self, time, flux, flux_err=0.0001,
+                 mask=None,
                 period=None, epoch=None, duration=None,
-                texp=None):
+                texp=None, detrend=True):
+        """
+
+        """
         
+        if mask is None:
+            mask = np.zeros_like(time)
+        self.mask = np.array(mask).astype(bool)
+
         if texp is None:
             texp = np.median(time[1:]-time[:-1])
         self.texp = texp
@@ -55,19 +64,34 @@ class TransitModel(object):
         self._flux = np.array(flux)
         self._flux_err = np.array(flux_err)
 
-        
+        if detrend:
+            self.median_detrend()
+        else:
+            self._detrended_flux = None
+
     @property
     def time(self):
-        return self._time.ravel()
+        return self._time[~self.mask]
     
     @property
-    def flux(self):
-        return self._flux.ravel()
+    def rawflux(self):
+        return self._flux[~self.mask]
         
     @property
     def flux_err(self):
-        return self._flux_err.ravel()
+        return self._flux_err[~self.mask]
         
+    @property
+    def flux(self):
+        return self._detrended_flux[~self.mask]
+
+    def median_detrend(self, window=75):
+        f = self._flux.copy()
+        f[self.any_intransit] = np.nan
+        f_median = pd.rolling_median(f, 75, center=True,
+                                                 min_periods=1)
+        self._detrended_flux = f / f_median
+
     @property
     def n_planets(self):
         return len(self.period)
@@ -111,17 +135,26 @@ class TransitModel(object):
         tspan = self.time[-1] - self.time[0]
         return [(tspan // p) + 1 for p in self.period]
         
+    def transit_mask(self, i, i_planet=0, width=2):
+        """returns True around i-th transit for planet number "i_planet"
+        """
+        per, ep = (self.period[i], self.epoch[i])
+        mask = np.absolute(((self.time - ep + per/2) / per) 
+                           - per/2 - i ) < width*self.duration[i]
+        return mask
+
     def transit_stack(self, i=0, width=2):
         """returns a 2-d array of times/fluxes with subsequent transits in each row
         """
         
-        for 
         
 
     def continuum(self, p, t):
         """out-of-transit light curve--- can in principle be variational model
         """
-        return np.ones_like(t)
+        f = np.ones_like(t)
+        f[np.isnan(t)] = np.nan
+        return f
         
     def light_curve(self, p, t, edge=2):
         """
