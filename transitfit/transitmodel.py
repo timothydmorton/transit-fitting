@@ -89,7 +89,7 @@ class TransitModel(object):
         f = self._flux.copy()
         f[self.any_intransit] = np.nan
         f_median = pd.rolling_median(f, 75, center=True,
-                                                 min_periods=1)
+                                     min_periods=1)
         self._detrended_flux = f / f_median
 
     @property
