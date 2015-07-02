@@ -89,9 +89,35 @@ class TransitModel(object):
 
     @property
     def anyclose(self):
-        close = np.ones_like(self.time).astype(bool)
+        close = np.zeros_like(self.time).astype(bool)
+        for i in range(self.n_planets):
+            close += self.close(i)
+        return close
+
+    def intransit(self, i=0):
+        """Boolean mask True everywhere within 0.6*duration of planet i
+        """
+        return self.close(i, width=0.6)
+
+    @property
+    def any_intransit(self):
+        intrans = np.zeros_like(self.time).astype(bool)
+        for i in range(self.n_planets):
+            intrans += self.intransit(i)
+        return intrans
+
+    @property
+    def n_transits(self):
+        tspan = self.time[-1] - self.time[0]
+        return [(tspan // p) + 1 for p in self.period]
         
+    def transit_stack(self, i=0, width=2):
+        """returns a 2-d array of times/fluxes with subsequent transits in each row
+        """
         
+        for 
+        
+
     def continuum(self, p, t):
         """out-of-transit light curve--- can in principle be variational model
         """
