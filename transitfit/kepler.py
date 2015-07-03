@@ -58,7 +58,7 @@ def kepler_planets(koinum, i):
         planets.append(Planet((k.koi_period, k.koi_period_err1),
                               (k.koi_time0bk, k.koi_time0bk_err1),
                               k.koi_duration/24,
-                              name='{}'.format(k)))
+                              name=k.kepoi_name))
         kois.append(k)
 
     return kois, planets
