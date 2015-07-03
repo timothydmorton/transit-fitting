@@ -6,7 +6,7 @@ import numpy as np
 
 import kplr
 
-from .transitmodel import TransitModel
+from .lightcurve import LightCurve, Planet
 
 KEPLER_CADENCE = 1626./86400
 
@@ -39,8 +39,8 @@ def all_LCdata(koi, mask_bad=False):
         ok = np.ones(len(df)).astype(bool)
     return df[ok]
 
-class KeplerTransitModel(TransitModel):
-    """A TransitModel of a Kepler star
+class KeplerLightCurve(LightCurve):
+    """A LightCurve of a Kepler star
 
     :param koinum:
         KOI number (integer).
@@ -67,25 +67,22 @@ class KeplerTransitModel(TransitModel):
             
         koi_list = [koinum + i*0.01 for i in ilist]
 
-        periods = []
-        epochs = []
-        durations = []
+        planets = []
         kois = []
         for k in koi_list:
             k = client.koi(k)
-            periods.append(k.koi_period)
-            epochs.append(k.koi_time0bk)
-            durations.append(k.koi_duration/24) # in days
+            planets.append(Planet(k.koi_period,
+                                  k.koi_time0bk,
+                                  k.koi_duration/24))
             kois.append(k)
 
         self.kois = kois
         
-        super(KeplerTransitModel, self).__init__(lcdata['TIME'],
+        super(KeplerLightCurve, self).__init__(lcdata['TIME'],
                                                  lcdata['PDCSAP_FLUX'],
                                                  lcdata['PDCSAP_FLUX_ERR'],
-                                                 mask=mask,
-                                                 period=periods, epoch=epochs,
-                                                 duration=durations, texp=KEPLER_CADENCE)
+                                                 mask=mask, planets=planets,
+                                                 texp=KEPLER_CADENCE)
 
     @property
     def archive_params(self):
