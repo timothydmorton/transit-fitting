@@ -3,6 +3,8 @@ from __future__ import print_function, division
 import numpy as np
 from scipy.optimize import minimize
 
+import emcee
+
 from .utils import lc_eval
 
 class TransitModel(object):
@@ -37,6 +39,25 @@ class TransitModel(object):
         self._bestfit = fit.x
         return fit
 
+    def fit_emcee(self, p0=None, nwalkers=200,
+                  nburn=10, niter=100, **kwargs):
+        if p0 is None:
+            p0 = self.lc.archive_params
+
+        ndim = len(p0)
+
+        p0 = (1 + np.random.normal(0,0.01,size=(nwalkers,ndim))) * \
+             np.array(p0)[None,:]
+
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, self, threads=4)
+
+        pos,prob,state = sampler.run_mcmc(p0, nburn)
+        sampler.reset()
+
+        sampler.run_mcmc(pos, niter)
+
+        self.sampler = sampler
+        return sampler
         
     def __call__(self, p):
         return self.lnpost(p)
