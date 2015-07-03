@@ -89,6 +89,7 @@ class TransitModel(object):
         nw = nwalkers
         p0 = np.ones((nw,ndim)) * np.array(p0)[None,:]
 
+        p0[:, 0] += np.random.normal(size=nw)*0.0001 #flux zp
         p0[:, 1] += np.random.normal(size=nw) #rhostar
         p0[:, 2] += np.random.normal(size=nw)*0.1 #q1
         p0[:, 3] += np.random.normal(size=nw)*0.1 #q2
@@ -167,7 +168,7 @@ class TransitModel(object):
                 return -np.inf
             if rprs <= 0:
                 return -np.inf
-
+            
             # Priors on period, epoch based on discovery measurements
             prior_p, prior_p_err = self.lc.planets[i]._period
             tot += -0.5*(period - prior_p)/prior_p_err**2
@@ -228,7 +229,12 @@ class TransitModel(object):
         for i in range(self.lc.n_planets):
             for j, par in enumerate(['period', 'epoch', 'b', 'rprs',
                                      'ecc', 'omega']):
-                df['{}_{}'.format(par,i+1)] = self.sampler.flatchain[:, 5+j+i*6]
+                column = self.sampler.flatchain[:, 5+j+i*6]
+                
+                if par=='omega':
+                    column = column % (2*np.pi)
+                    
+                df['{}_{}'.format(par,i+1)] = column
 
         self._samples = df
 
