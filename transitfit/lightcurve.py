@@ -261,6 +261,10 @@ class LightCurve(object):
 
         ax.annotate(self.planets[i].name, xy=(0.8,0.05),
                     xycoords='axes fraction', fontsize=14)
+
+        ax.annotate('P = {}d'.format(self.planets[i].period),
+                    xy=(0.05, 0.05), xycoords='axes fraction',
+                    fontsize=14)
         
         return fig
 
