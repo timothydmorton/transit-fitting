@@ -42,7 +42,7 @@ class TransitModel(object):
     def fit_emcee(self, p0=None, nwalkers=200,
                   nburn=10, niter=100, **kwargs):
         if p0 is None:
-            p0 = self.lc.archive_params
+            p0 = self.lc.default_params
 
         ndim = len(p0)
 

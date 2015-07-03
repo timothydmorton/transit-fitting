@@ -72,7 +72,7 @@ class LightCurve(object):
             self.median_detrend()
         else:
             self._detrended_flux = np.array(flux)
-            
+
     @property
     def t(self):
         return self.time
@@ -164,6 +164,21 @@ class LightCurve(object):
         """returns a 2-d array of times/fluxes with subsequent transits in each row
         """
 
+    @property
+    def default_params(self):
+        """Quick and dirty guesses for params
+
+        """
+        params = [4, 0.5, 0.5, 0]
+
+
+        for i,p in enumerate(self.planets):
+            minflux = np.median(self.flux[self.close(i, width=0.2, only=True)])
+            ror = np.sqrt(1 - minflux)
+            params += [p.period, p.epoch, 0.5, ror, 0, 0]
+
+        return params
+        
     def plot_planets(self, width=2, **kwargs):
         n = self.n_planets
         fig, axs = plt.subplots(n, 1, sharex=True)
