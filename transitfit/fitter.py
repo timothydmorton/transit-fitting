@@ -5,6 +5,12 @@ import pandas as pd
 from scipy.optimize import minimize
 import os, os.path
 
+from astropy import constants as const
+G = const.G.cgs.value
+M_sun = const.M_sun.cgs.value
+R_sun = const.R_sun.cgs.value
+DAY = 86400
+
 
 import emcee
 
@@ -69,17 +75,18 @@ class TransitModel(object):
         self._bestfit = fit.x
         return fit
 
-    def fit_emcee(self, p0=None, nwalkers=200,
+    def fit_emcee(self, p0=None, nwalkers=200, threads=1,
                   nburn=10, niter=100, **kwargs):
         if p0 is None:
             p0 = self.lc.default_params
 
         ndim = len(p0)
 
-        p0 = (1 + np.random.normal(0,0.01,size=(nwalkers,ndim))) * \
+        p0 = (np.random.normal(0,0.001,size=(nwalkers,ndim))) + \
              np.array(p0)[None,:]
+        p0 = np.absolute(p0)
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, self, threads=4)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         pos,prob,state = sampler.run_mcmc(p0, nburn)
         sampler.reset()
@@ -115,14 +122,25 @@ class TransitModel(object):
             return -np.inf
         if not (0 <= dilution < 1):
             return -np.inf
-        
+
         for i in xrange(self.lc.n_planets):
             period, epoch, b, rprs, e, w = p[5+i*6:11+i*6]
+
+            factor = 1.0
+            if e > 0:
+                factor = (1 + e * np.sin(w)) / (1 - e * e)
+
+            aR = (rhostar * G * (period*DAY)**2 / (3*np.pi))**(1./3)
+                
+            arg = b * factor/aR
+            if arg > 1.0:
+                return -np.inf
+                
             if period <= 0:
                 return -np.inf
             if not 0 <= e < 1:
                 return -np.inf
-            if not 0 <= b < 1+rprs:
+            if b < 0:
                 return -np.inf
             if rprs <= 0:
                 return -np.inf
@@ -181,15 +199,18 @@ class TransitModel(object):
 
         self._samples = df
 
-    def triangle(self, params=None, query=None, extent=0.999,
+    def triangle(self, params=None, i=0, query=None, extent=0.999,
                  **kwargs):
         """
-        Makes a nifty corner plot.
+        Makes a nifty corner plot for planet i
 
         Uses :func:`triangle.corner`.
 
         :param params: (optional)
             Names of columns to plot.
+
+        :param i:
+            Planet number (starting from 0)
 
         :param query: (optional)
             Optional query on samples.
@@ -208,7 +229,11 @@ class TransitModel(object):
             raise ImportError('please run "pip install triangle_plot".')
         
         if params is None:
-            params = self.samples.columns
+            params = ['dilution', 'rho', 'q1', 'q2']
+            for par in ['period', 'epoch', 'b', 'rprs',
+                        'ecc', 'omega']:
+                params.append('{}_{}'.format(par, i+1))
+
 
         df = self.samples
 
