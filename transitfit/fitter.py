@@ -85,10 +85,25 @@ class TransitModel(object):
         ndim = len(p0)
 
         # TODO: improve walker initialization!
-        p0 = (np.random.normal(0,0.001,size=(nwalkers,ndim))) + \
-             np.array(p0)[None,:]
-        p0 = np.absolute(p0)
 
+        nw = nwalkers
+        p0 = np.ones((nw,ndim)) * np.array(p0)[None,:]
+
+        p0[:, 1] += np.random.normal(size=nw) #rhostar
+        p0[:, 2] += np.random.normal(size=nw)*0.1 #q1
+        p0[:, 3] += np.random.normal(size=nw)*0.1 #q2
+        p0[:, 4] += np.random.normal(size=nw)*0.1 #dilution
+
+        for i in range(self.lc.n_planets):
+            p0[:, 5 + 6*i] += np.random.normal(size=nw)*1e-4 #period
+            p0[:, 6 + 6*i] += np.random.normal(size=nw)*0.001 #epoch
+            p0[:, 7 + 6*i] = np.random.random(size=nw)*0.8 # impact param
+            p0[:, 8 + 6*i] *= (1 + np.random.normal(size=nw)*0.01) #rprs
+            p0[:, 9 + 6*i] = np.random.random(size=nw)*0.1 # eccentricity
+            p0[:, 10 + 6*i] = np.random.random(size=nw)*2*np.pi
+
+        p0 = np.absolute(p0) # no negatives allowed 
+                                                
         sampler = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         pos,prob,state = sampler.run_mcmc(p0, nburn)
