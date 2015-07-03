@@ -6,7 +6,7 @@ from transit import Central, System, Body
 def t_folded(t, per, ep):
     return (t + per/2 - ep) % per - (per/2)
 
-def lc_eval(p, t, edge=2, texp=0.01):
+def lc_eval(p, t, texp=None):
     """
     Returns flux at given times, given parameters.
 
@@ -18,12 +18,13 @@ def lc_eval(p, t, edge=2, texp=0.01):
     :param t:
         Times at which to evaluate model.
 
-    :param edge:
-        How many "durations" (approximately calculated) from transit center
-        to bother calculating transit model.  If the eccentricity is significant,
-        you may need to use a larger edge (default = 2).
+    :param texp:
+        Exposure time.  If not provided, assumed to be median t[1:]-t[:-1]
 
     """
+    if texp is None:
+        texp = np.median(t[1:] - t[:-1])
+        
     n_planets = (len(p) - 4)//6
     
     rhostar, q1, q2, dilution = p[:4]
@@ -45,17 +46,18 @@ def lc_eval(p, t, edge=2, texp=0.01):
 
         tfold = t_folded(t, period, epoch)
 
-        #because duration hack sometimes fails...
-        try:
-            duration = body.duration_approx
-            duration_guess = duration
-        except:
-            duration = duration_guess
+        # #because duration hack sometimes fails...
+        #try:
+        #    duration = body.duration_approx
+        #    duration_guess = duration
+        #except:
+        #    duration = duration_guess
 
-        close_to_transit += np.absolute(tfold) < edge*(duration)
+        #close_to_transit += np.absolute(tfold) < edge*(duration)
 
-    f = np.ones_like(t)
-    f[close_to_transit] = s.light_curve(t[close_to_transit], texp=texp)
-    return f
-    
+    #f = np.ones_like(t)
+    #f[close_to_transit] = s.light_curve(t[close_to_transit], texp=texp)
+    #return f
+
+    return s.light_curve(t, texp=texp)
         

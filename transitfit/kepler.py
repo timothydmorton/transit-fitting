@@ -39,6 +39,30 @@ def all_LCdata(koi, mask_bad=False):
         ok = np.ones(len(df)).astype(bool)
     return df[ok]
 
+def kepler_planets(koinum, i):
+    client = kplr.API()
+    
+    if type(i)==int:
+        ilist = [i]
+    elif i is None:
+        ilist = range(1, count+1)
+    else:
+        ilist = i
+
+    koi_list = [koinum + i*0.01 for i in ilist]
+
+    planets = []
+    kois = []
+    for k in koi_list:
+        k = client.koi(k)
+        planets.append(Planet(k.koi_period,
+                              k.koi_time0bk,
+                              k.koi_duration/24))
+        kois.append(k)
+
+    return kois, planets
+    
+
 class KeplerLightCurve(LightCurve):
     """A LightCurve of a Kepler star
 
@@ -58,24 +82,7 @@ class KeplerLightCurve(LightCurve):
 
         mask = ~np.isfinite(lcdata['PDCSAP_FLUX']) | lcdata['SAP_QUALITY']
 
-        if type(i)==int:
-            ilist = [i]
-        elif i is None:
-            ilist = range(1, count+1)
-        else:
-            ilist = i
-            
-        koi_list = [koinum + i*0.01 for i in ilist]
-
-        planets = []
-        kois = []
-        for k in koi_list:
-            k = client.koi(k)
-            planets.append(Planet(k.koi_period,
-                                  k.koi_time0bk,
-                                  k.koi_duration/24))
-            kois.append(k)
-
+        kois, planets = kepler_planets(koinum, i=i)
         self.kois = kois
         
         super(KeplerLightCurve, self).__init__(lcdata['TIME'],
@@ -86,7 +93,7 @@ class KeplerLightCurve(LightCurve):
 
     @property
     def archive_params(self):
-        params = [self.kois[0].koi_srho, 0.5, 0.5, 0]
+        params = [1, self.kois[0].koi_srho, 0.5, 0.5, 0]
         
         for k in self.kois:
             params += [k.koi_period, k.koi_time0bk, k.koi_impact, k.koi_ror, 0, 0]
@@ -95,3 +102,12 @@ class KeplerLightCurve(LightCurve):
 
     def archive_light_curve(self, t):
         return self.light_curve(self.archive_params, t)
+
+
+    @classmethod
+    def from_hdf(cls, *args, **kwargs):
+        raise NotImplementedError
+    
+    @classmethod
+    def from_df(cls, df, **kwargs):
+        raise NotImplementedError

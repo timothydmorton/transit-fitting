@@ -3,6 +3,9 @@ from __future__ import print_function, division
 import numpy as np
 from numpy import ma
 import pandas as pd
+
+import os, os.path
+
 import matplotlib.pyplot as plt
 
 from transit import Central, System, Body
@@ -169,7 +172,7 @@ class LightCurve(object):
         """Quick and dirty guesses for params
 
         """
-        params = [4, 0.5, 0.5, 0]
+        params = [1, 4, 0.5, 0.5, 0]
 
 
         for i,p in enumerate(self.planets):
@@ -228,3 +231,95 @@ class LightCurve(object):
         ax.set_ylabel('Depth (ppm)', fontsize=18)
         
         return fig
+
+    def save_hdf(self, filename, path='', overwrite=False, append=False):
+        """Saves object data to HDF file
+
+        Suitable for re-loading via :func:`LightCurve.load_hdf`.
+        
+        :param filename:
+            Name of file to save to.  Should be .h5 file.
+
+        :param path: (optional)
+            Path within HDF file structure to save to.
+
+        :param overwrite: (optional)
+            If ``True``, delete any existing file by the same name
+            before writing.
+
+        :param append: (optional)
+            If ``True``, then if a file exists, then just the path
+            within the file will be updated.
+        """
+        
+        if os.path.exists(filename):
+            store = pd.HDFStore(filename)
+            if path in store:
+                store.close()
+                if overwrite:
+                    os.remove(filename)
+                elif not append:
+                    raise IOError('{} in {} exists.  Set either overwrite or append option.'.format(path,filename))
+            else:
+                store.close()
+
+        self.dataframe.to_hdf(filename, '{}/lc'.format(path))
+
+        store = pd.HDFStore(filename)
+        attrs = store.get_storer('{}/lc'.format(path)).attrs
+        attrs.texp = self.texp
+        attrs.planets = self.planets
+        store.close()
+
+    @classmethod
+    def load_hdf(cls, filename, path=''):
+        """
+        A class method to load a saved LightCurve from an HDF5 file.
+
+        File must have been created by a call to :func:`LightCurve.save_hdf`.
+
+        :param filename:
+            H5 file to load.
+
+        :param path: (optional)
+            Path within HDF file.
+
+        :return:
+            :class:`LightCurve` object.
+        """
+        store = pd.HDFStore(filename)
+        try:
+            df = store['{}/lc'.format(path)]
+            attrs = store.get_storer('{}/lc'.format(path)).attrs        
+        except:
+            store.close()
+            raise
+        texp = attrs.texp
+        planets = attrs.planets
+        store.close()
+
+        return cls.from_df(df, texp=texp, planets=planets)
+    
+    @property
+    def dataframe(self):
+        """
+        Return data as a pandas DataFrame
+        """
+        df = pd.DataFrame()
+        df['time'] = self._time
+        df['flux'] = self._flux
+        df['flux_err'] = self._flux_err
+        df['mask'] = self.mask
+        df['detrended_flux'] = self._detrended_flux
+
+        return df
+            
+    @classmethod
+    def from_df(cls, df, **kwargs):
+        new = cls(df['time'], df['flux'], df['flux_err'],
+                  mask=df['mask'], detrend=False,
+                  **kwargs)
+
+        new._detrended_flux = df['detrended_flux']
+        
+        return new
