@@ -19,6 +19,8 @@ try:
 except ImportError:
     triangle=None
 
+from transit.transit import InvalidParameterError
+    
 from .utils import lc_eval
 
 class TransitModel(object):
@@ -82,6 +84,7 @@ class TransitModel(object):
 
         ndim = len(p0)
 
+        # TODO: improve walker initialization!
         p0 = (np.random.normal(0,0.001,size=(nwalkers,ndim))) + \
              np.array(p0)[None,:]
         p0 = np.absolute(p0)
@@ -111,7 +114,11 @@ class TransitModel(object):
         return prior + like
                     
     def lnlike(self, p):
-        flux_model = self.evaluate(p)
+        try:
+            flux_model = self.evaluate(p)
+        except InvalidParameterError:
+            return -np.inf
+        
         return (-0.5 * (flux_model - self.lc.flux)**2 / self.lc.flux_err**2).sum()
         
     def lnprior(self, p):
@@ -123,6 +130,7 @@ class TransitModel(object):
         if not (0 <= dilution < 1):
             return -np.inf
 
+        tot = 0
         for i in xrange(self.lc.n_planets):
             period, epoch, b, rprs, e, w = p[5+i*6:11+i*6]
 
@@ -144,8 +152,14 @@ class TransitModel(object):
                 return -np.inf
             if rprs <= 0:
                 return -np.inf
+
+            prior_p, prior_p_err = self.lc.planets[i]._period
+            tot += -0.5*(period - prior_p)/prior_p_err**2
+
+            prior_ep, prior_ep_err = self.lc.planets[i]._epoch
+            tot += -0.5*(epoch - prior_ep)/prior_ep_err**2
             
-        return 0
+        return tot
 
     def plot_planets(self, params, width=2, color='r', fig=None,
                      marker='o', ls='none', ms=0.5, **kwargs):

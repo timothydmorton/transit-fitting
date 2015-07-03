@@ -16,11 +16,37 @@ from .utils import t_folded, lc_eval
 
 class Planet(object):
     def __init__(self, period, epoch, duration):
-        self.period = period
-        self.epoch = epoch
+
+        if type(period) in (float, int):
+            period = (period, np.nan)
+        if type(epoch) in (float, int):
+            epoch = (epoch, np.nan)
+
+        assert len(period)==2
+        assert len(epoch)==2
+        
+        self._period = period
+        self._epoch = epoch
+
         self.duration = duration
         self.lc = None
 
+    @property
+    def period(self):
+        return self._period[0]
+
+    @property
+    def epoch(self):
+        return self._epoch[0]
+
+    @property
+    def e_period(self):
+        return self._period[1]
+
+    @property
+    def e_epoch(self):
+        return self._epoch[1]
+        
     def t_folded(self, t):
         return t_folded(t, self.period, self.epoch)
 
