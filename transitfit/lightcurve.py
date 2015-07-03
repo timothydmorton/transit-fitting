@@ -15,7 +15,10 @@ from .utils import t_folded, lc_eval
 
 
 class Planet(object):
-    def __init__(self, period, epoch, duration):
+    """
+    Initialize with period, epoch as 2-element tuples, 
+    """
+    def __init__(self, period, epoch, duration, name=''):
 
         if type(period) in (float, int):
             period = (period, np.nan)
@@ -25,11 +28,12 @@ class Planet(object):
         assert len(period)==2
         assert len(epoch)==2
         
-        self._period = period
-        self._epoch = epoch
+        self._period = tuple(period)
+        self._epoch = tuple(epoch)
 
         self.duration = duration
-        self.lc = None
+
+        self.name = name
 
     @property
     def period(self):
@@ -138,7 +142,6 @@ class LightCurve(object):
         return len(self.planets)
         
     def add_planet(self, planet):
-        planet.lc = self
         self.planets.append(planet)
 
     def t_folded(self, i=0):
@@ -255,6 +258,9 @@ class LightCurve(object):
         ax.invert_yaxis()
         ax.set_xlabel('Time from mid-transit (hours)', fontsize=18)
         ax.set_ylabel('Depth (ppm)', fontsize=18)
+
+        ax.annotate(self.planets[i].name, xy=(0.8,0.05),
+                    xycoords='axes fraction', fontsize=14)
         
         return fig
 

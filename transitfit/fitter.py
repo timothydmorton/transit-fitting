@@ -153,11 +153,15 @@ class TransitModel(object):
             if rprs <= 0:
                 return -np.inf
 
+            # Priors on period, epoch based on discovery measurements
             prior_p, prior_p_err = self.lc.planets[i]._period
             tot += -0.5*(period - prior_p)/prior_p_err**2
 
             prior_ep, prior_ep_err = self.lc.planets[i]._epoch
             tot += -0.5*(epoch - prior_ep)/prior_ep_err**2
+
+            # log-flat prior on rprs
+            tot += np.log(1 / rprs)
             
         return tot
 
