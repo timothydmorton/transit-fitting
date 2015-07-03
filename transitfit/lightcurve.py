@@ -21,11 +21,11 @@ class Planet(object):
     def t_folded(self, t):
         return t_folded(t, self.period, self.epoch)
 
-    def t_close(self, t, width=2):
+    def close(self, t, width=2):
         return np.absolute(self.t_folded(t)) < width*self.duration
 
     def in_transit(self, t, width=0.55):
-        return self.t_close(t, width=width)
+        return self.close(t, width=width)
 
     def ith_transit(self, t, i, width=2):
         """Returns True around ith transit (as measured from epoch)
@@ -117,16 +117,25 @@ class LightCurve(object):
         """
         return self.planets[i].t_folded(self.time)
 
-    def t_close(self, i=0, width=2):
-        """Boolean array with True everywhere within width*duration of planet i 
+    def close(self, i=0, width=2, only=False):
+        """Boolean array with True everywhere within width*duration of planet i
+
+        if only, then any cadences with other planets also get masked out
         """
-        return self.planets[i].t_close(self.time, width=width)
+        close = self.planets[i].close(self.time, width=width)
+        if only:
+            for j in range(self.n_planets):
+                if j==i:
+                    continue
+                close &= ~self.close(j, width=width)
+            
+        return close
 
     @property
     def anyclose(self):
         close = np.zeros_like(self.time).astype(bool)
         for i in range(self.n_planets):
-            close += self.t_close(i)
+            close += self.close(i)
         return close
 
     def intransit(self, i=0, width=0.55):
@@ -154,6 +163,53 @@ class LightCurve(object):
     def transit_stack(self, i=0, width=2):
         """returns a 2-d array of times/fluxes with subsequent transits in each row
         """
+
+    def plot_planets(self, width=2, **kwargs):
+        n = self.n_planets
+        fig, axs = plt.subplots(n, 1, sharex=True)
+
+        fig.set_figwidth(8)
+        fig.set_figheight(2*n)
+        
+        # Scale widths for each plot by duration.
+        maxdur = max([p.duration for p in self.planets])
+        widths = [width / (p.duration/maxdur) for p in self.planets]
+        
+        for i,ax in enumerate(axs):
+            self.plot_planet(i, ax=ax, width=widths[i], **kwargs)
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            yticks = ax.get_yticks()
+            ax.set_yticks(yticks[1:])
+
+        axs[n//2].set_ylabel('Depth [ppm]', fontsize=18)
+        axs[-1].set_xlabel('Hours from mid-transit', fontsize=18)
+
+        fig.subplots_adjust(hspace=0)
+            
+        return fig
         
         
-    
+    def plot_planet(self, i=0, width=2, ax=None,
+                    marker='o', ls='none', color='k',
+                    ms=0.3, alpha=1, 
+                    **kwargs):
+        """Plots planet i; masking out others, if present
+        """
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+        else:
+            fig = plt.gcf()
+
+        tfold = self.t_folded(i) * 24
+        close = self.close(i, width=width, only=True)
+        depth = (1 - self.flux)*1e6
+        
+        ax.plot(tfold[close], depth[close], color=color,
+                marker=marker, ms=ms, ls=ls, alpha=alpha, **kwargs)
+
+        ax.invert_yaxis()
+        ax.set_xlabel('Time from mid-transit (hours)', fontsize=18)
+        ax.set_ylabel('Depth (ppm)', fontsize=18)
+        
+        return fig

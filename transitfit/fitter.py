@@ -77,3 +77,21 @@ class TransitModel(object):
                 return -np.inf
             
         return 0
+
+    def plot_planets(self, params, width=2, color='r',
+                     marker='o', ls='none', ms=0.5, **kwargs):
+        fig = self.lc.plot_planets(width=width, **kwargs)
+
+        # Scale widths for each plot by duration.
+        maxdur = max([p.duration for p in self.lc.planets])
+        widths = [width / (p.duration/maxdur) for p in self.lc.planets]
+
+        depth = (1 - self.evaluate(params))*1e6
+        
+        for i,ax in enumerate(fig.axes):
+            tfold = self.lc.t_folded(i) * 24
+            close = self.lc.close(i, width=widths[i], only=True)
+            ax.plot(tfold[close], depth[close], color=color, mec=color,
+                    marker=marker, ls=ls, ms=ms, **kwargs)
+
+        return fig
