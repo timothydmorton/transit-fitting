@@ -36,7 +36,6 @@ def lc_eval(p, t, texp=None):
     tot = 0
     close_to_transit = np.zeros_like(t).astype(bool)
 
-    duration_guess = 1
     for i in range(n_planets):
         period, epoch, b, rprs, e, w = p[4+i*6:10+i*6]
         r = central.radius * rprs
@@ -45,19 +44,6 @@ def lc_eval(p, t, texp=None):
         s.add_body(body)
 
         tfold = t_folded(t, period, epoch)
-
-        # #because duration hack sometimes fails...
-        #try:
-        #    duration = body.duration_approx
-        #    duration_guess = duration
-        #except:
-        #    duration = duration_guess
-
-        #close_to_transit += np.absolute(tfold) < edge*(duration)
-
-    #f = np.ones_like(t)
-    #f[close_to_transit] = s.light_curve(t[close_to_transit], texp=texp)
-    #return f
 
     return s.light_curve(t, texp=texp)
         
