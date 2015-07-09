@@ -5,6 +5,9 @@ import pandas as pd
 from scipy.optimize import minimize
 import os, os.path
 
+from scipy.stats import norm
+from scipy.stats import gaussian_kde
+
 from astropy import constants as const
 G = const.G.cgs.value
 M_sun = const.M_sun.cgs.value
@@ -24,6 +27,29 @@ from transit.transit import InvalidParameterError
 from .utils import lc_eval
 
 class TransitModel(object):
+    """Model of one or more transiting planets around a particular star
+    
+    :param lc:
+        LightCurve object
+
+    :param width:
+        The number of durations around a transit calculated to evaluate
+        model.  Model is evaluated between ``tc - width*duration`` and
+        ``tc + width*duration``, where ``tc`` is the transit center time.
+
+    :param rhostar:
+        Stellar density.  May be passed as a two-element tuple/list, 
+        in which case it will be interpreted as a normal distribution
+        with (mu, sigma); or it may be passed as an array, in which
+        case it will be interpreted as posterior samples.
+
+    :param dilution:
+        The fraction of light in the photometric aperture that does 
+        not come from the star being transited.  Will be interpreted
+        the same way as ``rhostar``, either as a normal distribution
+        or as posterior samples.
+
+    """
     def __init__(self, lc, width=2, continuum_method='constant',
                  rhostar=None, dilution=None):
         self.lc = lc
@@ -31,7 +57,10 @@ class TransitModel(object):
         self.continuum_method = continuum_method
 
         self.rhostar = rhostar
+        self._rhostar_priorfn = None
+
         self.dilution = dilution
+        self._dilution_proirfn = None
 
         self._bestfit = None
         self._samples = None
@@ -52,6 +81,30 @@ class TransitModel(object):
         
         return p[0]*np.ones_like(t)
         
+
+    def _property_priorfn(self, prop):
+        p = getattr(self,prop)
+        if len(p)==2:
+            dist = norm(*p)
+            return dist.pdf
+        else:
+            return gaussian_kde(p)
+
+    @property
+    def rhostar_prior(self):
+        if self._rhostar_priorfn is None:
+            self._rhostar_priorfn = self._property_priorfn('rhostar')
+
+        return self._rhostar_priorfn
+            
+    @property
+    def dilution_prior(self):
+        if self._dilution_priorfn is None:
+            self._dilution_priorfn = self._dilution_priorfn('dilution')
+
+        return self._dilution_priorfn
+            
+
     def evaluate(self, p):
         """Evaluates light curve model at light curve times
 
