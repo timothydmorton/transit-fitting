@@ -24,10 +24,14 @@ from transit.transit import InvalidParameterError
 from .utils import lc_eval
 
 class TransitModel(object):
-    def __init__(self, lc, width=2, continuum_method='constant'):
+    def __init__(self, lc, width=2, continuum_method='constant',
+                 rhostar=None, dilution=None):
         self.lc = lc
         self.width = width
         self.continuum_method = continuum_method
+
+        self.rhostar = rhostar
+        self.dilution = dilution
 
         self._bestfit = None
         self._samples = None
