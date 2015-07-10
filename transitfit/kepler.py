@@ -75,7 +75,7 @@ class KeplerLightCurve(LightCurve):
         list of integers, or None (in which case all planets will be modeled).
         
     """
-    def __init__(self, koinum, i=None):
+    def __init__(self, koinum, i=None, **kwargs):
         client = kplr.API()
         koi = client.koi(koinum + 0.01)
         count = koi.koi_count
@@ -90,7 +90,7 @@ class KeplerLightCurve(LightCurve):
                                                  lcdata['PDCSAP_FLUX'],
                                                  lcdata['PDCSAP_FLUX_ERR'],
                                                  mask=mask, planets=planets,
-                                                 texp=KEPLER_CADENCE)
+                                                 texp=KEPLER_CADENCE, **kwargs)
 
     @property
     def archive_params(self):

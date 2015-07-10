@@ -8,6 +8,9 @@ import os, os.path
 
 import matplotlib.pyplot as plt
 
+from scipy.stats import norm
+from scipy.stats import gaussian_kde
+
 from transit import Central, System, Body
 
 from .utils import t_folded, lc_eval
@@ -82,6 +85,7 @@ class LightCurve(object):
     """
     def __init__(self, time, flux, flux_err=0.0001,
                  mask=None, texp=None, planets=None,
+                 rhostar=None, dilution=None,
                  detrend=True):
 
         
@@ -92,6 +96,12 @@ class LightCurve(object):
         if texp is None:
             texp = np.median(time[1:]-time[:-1])
         self.texp = texp
+
+        self.rhostar = rhostar
+        self._rhostar_pdf = None
+
+        self.dilution = dilution
+        self._dilution_pdf = None
         
         if planets is None:
             planets = []
@@ -196,6 +206,29 @@ class LightCurve(object):
         """returns a 2-d array of times/fluxes with subsequent transits in each row
         """
 
+    def _property_pdf(self, prop):
+        p = getattr(self,prop)
+        if len(p)==2:
+            dist = norm(*p)
+            return dist.pdf
+        else:
+            return gaussian_kde(p)
+
+    @property
+    def rhostar_pdf(self):
+        if self._rhostar_pdf is None:
+            self._rhostar_pdf = self._property_pdf('rhostar')
+
+        return self._rhostar_pdf
+            
+    @property
+    def dilution_pdf(self):
+        if self._dilution_pdf is None:
+            self._dilution_pdf = self._property_pdf('dilution')
+
+        return self._dilution_pdf
+                
+
     @property
     def default_params(self):
         """Quick and dirty guesses for params
@@ -203,10 +236,22 @@ class LightCurve(object):
         """
         params = [1, 4, 0.5, 0.5, 0]
 
+        if self.rhostar is not None:
+            if len(self.rhostar)==2:
+                params[1] = self.rhostar[0]
+            else:
+                params[1] = np.mean(self.rhostar)
+
+        if self.dilution is not None:
+            if len(self.dilution)==2:
+                params[4] = self.dilution[0]
+            else:
+                params[4] = np.mean(self.dilution)
 
         for i,p in enumerate(self.planets):
             minflux = np.median(self.flux[self.close(i, width=0.2, only=True)])
-            ror = np.sqrt(1 - minflux)
+            ror = np.sqrt((1 - minflux ) / 
+                          (1 - params[4])) #corrected for dilution
             params += [p.period, p.epoch, 0.5, ror, 0, 0]
 
         return params

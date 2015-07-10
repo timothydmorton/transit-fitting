@@ -5,9 +5,6 @@ import pandas as pd
 from scipy.optimize import minimize
 import os, os.path
 
-from scipy.stats import norm
-from scipy.stats import gaussian_kde
-
 from astropy import constants as const
 G = const.G.cgs.value
 M_sun = const.M_sun.cgs.value
@@ -56,11 +53,7 @@ class TransitModel(object):
         self.width = width
         self.continuum_method = continuum_method
 
-        self.rhostar = rhostar
-        self._rhostar_priorfn = None
 
-        self.dilution = dilution
-        self._dilution_proirfn = None
 
         self._bestfit = None
         self._samples = None
@@ -82,28 +75,7 @@ class TransitModel(object):
         return p[0]*np.ones_like(t)
         
 
-    def _property_priorfn(self, prop):
-        p = getattr(self,prop)
-        if len(p)==2:
-            dist = norm(*p)
-            return dist.pdf
-        else:
-            return gaussian_kde(p)
 
-    @property
-    def rhostar_prior(self):
-        if self._rhostar_priorfn is None:
-            self._rhostar_priorfn = self._property_priorfn('rhostar')
-
-        return self._rhostar_priorfn
-            
-    @property
-    def dilution_prior(self):
-        if self._dilution_priorfn is None:
-            self._dilution_priorfn = self._dilution_priorfn('dilution')
-
-        return self._dilution_priorfn
-            
 
     def evaluate(self, p):
         """Evaluates light curve model at light curve times
@@ -196,6 +168,7 @@ class TransitModel(object):
         
     def lnprior(self, p):
         flux_zp, rhostar, q1, q2, dilution = p[:5]
+
         if not (0 <= q1 <=1 and 0 <= q2 <= 1):
             return -np.inf
         if rhostar < 0:
@@ -204,6 +177,14 @@ class TransitModel(object):
             return -np.inf
 
         tot = 0
+
+        # Apply stellar density prior if relevant.
+        if self.lc.rhostar is not None:
+            tot += np.log(self.lc.rhostar_pdf(rhostar))
+            
+        if self.lc.dilution is not None:
+            tot += np.log(self.lc.dilution_pdf(dilution))
+
         for i in xrange(self.lc.n_planets):
             period, epoch, b, rprs, e, w = p[5+i*6:11+i*6]
 

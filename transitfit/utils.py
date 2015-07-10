@@ -3,6 +3,58 @@ from __future__ import print_function, division
 import numpy as np
 from transit import Central, System, Body
 
+def dilution_samples(s, which='A', band='Kepler'):
+    """
+    Returns dilution samples in band, according to StarModel s
+
+    :param s:
+        :class:`BinaryStarModel` Object, (defined in ``isochrones`` module)
+
+    :param which:
+        'A' for primary, 'B' for secondary.
+
+    :param band:
+        Photometric bandpass of interest.
+    """
+
+    mA = s.samples['{}_mag_A'.format(band,which)]
+    mB = s.samples['{}_mag_B'.format(band,which)]
+    
+    fA = 10**(-0.4*mA)
+    fB = 10**(-0.4*mB)
+    if which=='A':
+        return fB/(fB+fA)
+    elif which=='B':
+        return fA/(fB+fA)
+    else:
+        raise ValueError('Invalid choice: {}'.format(which))
+
+def density_samples(s, which='A'):
+    """
+    Returns density samples according to StarModel
+
+    :param s:
+        :class:`StarModel` object.
+
+    :param which:
+        'A' for primary, 'B' for secondary.
+    """
+    if which=='A':
+        if 'mass_A' in s.samples:
+            m = s.samples['mass_A'.format(which)]
+        else:
+            m = s.samples['mass'.format(which)]
+        r = s.samples['radius'.format(which)]
+    elif which=='B':
+        m = s.samples['mass_B']
+        r = s.samples['radius_B']
+    else:
+        raise ValueError('Invalid choice: {}'.format(which))
+    return 0.75*m*M_sun / (np.pi * (r*R_sun)**3)
+
+
+
+
 def t_folded(t, per, ep):
     return (t + per/2 - ep) % per - (per/2)
 
