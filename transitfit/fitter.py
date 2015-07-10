@@ -441,6 +441,8 @@ class BinaryTransitModel(TransitModel):
 
             Difference with TransitModel is that there are now two stars.
 
+            
+
             :param p:
                 Parameter vector, of length 1 + 4*2 + 6*Nplanets
                 p[0] = flux zero-point
@@ -451,6 +453,24 @@ class BinaryTransitModel(TransitModel):
             
             # So as to be careful to not pass slices of p around...
             p = list(p)
+
+            f = self.continuum(p[0], self.lc, t)
+
+            # Must use self.which to determine which star parameters
+            #  get passed to lc_eval for each planet.
+
+            close_A = np.zeros_like(self.lc.t).astype(bool)
+            close_B = np.zeros_like(self.lc.t).astype(bool)
+
+            # Build close_A and close_B properly, depending on self.which
+            for i in range(self.lc.n_planets):
+                pass
+
+
+            #f[close_A] = 
+            #f[close_B] = 
+            
+            return f
 
         def lnprior(self, p):
             pass
