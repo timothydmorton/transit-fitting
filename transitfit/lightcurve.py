@@ -82,6 +82,15 @@ class LightCurve(object):
         Exposure time.  If not provided, will be assumed to be median
         of delta-t.
         
+    :param rhostar:
+        Stellar density.  Can be passed as (mu, sigma) or
+        as array of posterior samples.
+
+    :param dilution:
+        Dilution (fraction of light in aperture *not* from 
+        planet host star).  Can be passed as (mu, sigma) or
+        array of posterior samples.
+
     """
     def __init__(self, time, flux, flux_err=0.0001,
                  mask=None, texp=None, planets=None,
@@ -416,3 +425,26 @@ class LightCurve(object):
         new._detrended_flux = df['detrended_flux']
         
         return new
+
+
+class BinaryLightCurve(LightCurve):
+    """LightCurve of a binary star system
+
+    Like LightCurve, but takes rhostar_A and 
+    rhostar_B.  Dilution refers to primary.
+
+    """
+    def __init__(self, time, flux, flux_err=0.0001,
+                 rhostar_A=None, rhostar_B=None,
+                 dilution=None, **kwargs):
+        pass
+
+    def save_hdf(self):
+        """
+
+        Must take into account rhostar_A, rhostar_B
+        """
+        pass
+
+    def load_hdf(self):
+        pass

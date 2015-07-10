@@ -418,3 +418,47 @@ class TransitModel(object):
         
         return mod
     
+
+class BinaryTransitModel(TransitModel):
+    """
+    TransitModel of two stars
+
+    :param lc:
+        BinaryLightCurve object.
+
+    :param which:
+        e.g., for three-planet system: ['A', 'A', 'B']
+
+    """
+    def __init__(self, lc, which=None):
+        
+        if which = None:
+            which = ['A'] * lc.n_planets
+
+        def evaluate(self, p):
+            """
+            Evaluates light curve model at light curve times.
+
+            Difference with TransitModel is that there are now two stars.
+
+            :param p:
+                Parameter vector, of length 1 + 4*2 + 6*Nplanets
+                p[0] = flux zero-point
+                p[1:5] = [rhostar_A, q1_A, q2_A, dilution_A]
+                p[5:9] = [rhostar_B, q1_B, q2_B, dilution_B]
+                p[9+i*6 : 15+i*6] = [per, ep, b, rprs, e, w] for i-th planet  
+            """
+            
+            # So as to be careful to not pass slices of p around...
+            p = list(p)
+
+        def lnprior(self, p):
+            pass
+            
+        def _make_samples(self):
+            pass
+
+        def triangle(self, params=None, **kwargs):
+            # Set default params appropriately
+            
+            super(BinaryTransitModel, self).triangle(params, **kwargs)
