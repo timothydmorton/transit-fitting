@@ -49,8 +49,8 @@ class TransitModel(object):
         or as posterior samples.
 
     """
-    def __init__(self, lc, width=2, continuum_method='constant',
-                 rhostar=None, dilution=None):
+    def __init__(self, lc, width=2, continuum_method='constant'):
+
         self.lc = lc
         self.width = width
         self.continuum_method = continuum_method
