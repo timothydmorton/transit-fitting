@@ -36,18 +36,6 @@ class TransitModel(object):
         model.  Model is evaluated between ``tc - width*duration`` and
         ``tc + width*duration``, where ``tc`` is the transit center time.
 
-    :param rhostar:
-        Stellar density.  May be passed as a two-element tuple/list, 
-        in which case it will be interpreted as a normal distribution
-        with (mu, sigma); or it may be passed as an array, in which
-        case it will be interpreted as posterior samples.
-
-    :param dilution:
-        The fraction of light in the photometric aperture that does 
-        not come from the star being transited.  Will be interpreted
-        the same way as ``rhostar``, either as a normal distribution
-        or as posterior samples.
-
     """
     def __init__(self, lc, width=2, continuum_method='constant'):
 
