@@ -5,6 +5,8 @@ import pandas as pd
 from scipy.optimize import minimize
 import os, os.path
 
+from scipy.special import beta
+
 from astropy import constants as const
 G = const.G.cgs.value
 M_sun = const.M_sun.cgs.value
@@ -188,6 +190,15 @@ class TransitModel(object):
         for i in xrange(self.lc.n_planets):
             period, epoch, b, rprs, e, w = p[5+i*6:11+i*6]
 
+            if not 0 < e < 1:
+                return -np.inf
+            if period <= 0:
+                return -np.inf
+            if rprs <= 0:
+                return -np.inf
+            if b < 0 or b > (1 + rprs):
+                return -np.inf
+
             factor = 1.0
             if e > 0:
                 factor = (1 + e * np.sin(w)) / (1 - e * e)
@@ -198,14 +209,6 @@ class TransitModel(object):
             if arg > 1.0:
                 return -np.inf
                 
-            if period <= 0:
-                return -np.inf
-            if not 0 <= e < 1:
-                return -np.inf
-            if b < 0:
-                return -np.inf
-            if rprs <= 0:
-                return -np.inf
             
             # Priors on period, epoch based on discovery measurements
             prior_p, prior_p_err = self.lc.planets[i]._period
@@ -216,6 +219,11 @@ class TransitModel(object):
 
             # log-flat prior on rprs
             tot += np.log(1 / rprs)
+
+            # Beta prior on eccentricity
+            a,b = (0.4497, 1.7938)
+            eccprior = 1/beta(a,b) * e**(a-1) * (1 - e)**(b-1)
+            tot += np.log(eccprior)
             
         return tot
 
@@ -277,6 +285,7 @@ class TransitModel(object):
         self._samples = df
 
     def triangle(self, params=None, i=0, query=None, extent=0.999,
+                 planet_only=False,
                  **kwargs):
         """
         Makes a nifty corner plot for planet i
@@ -284,7 +293,8 @@ class TransitModel(object):
         Uses :func:`triangle.corner`.
 
         :param params: (optional)
-            Names of columns to plot.
+            Names of columns to plot.  Set planet_only to be ``True``
+            to leave out star params.
 
         :param i:
             Planet number (starting from 0)
@@ -306,7 +316,10 @@ class TransitModel(object):
             raise ImportError('please run "pip install triangle_plot".')
         
         if params is None:
-            params = ['dilution', 'rho', 'q1', 'q2']
+            if planet_only:
+                params = []
+            else:
+                params = ['dilution', 'rho', 'q1', 'q2']
             for par in ['period', 'epoch', 'b', 'rprs',
                         'ecc', 'omega']:
                 params.append('{}_{}'.format(par, i+1))

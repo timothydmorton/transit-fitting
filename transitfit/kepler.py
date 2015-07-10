@@ -105,10 +105,10 @@ class KeplerLightCurve(LightCurve):
         return self.light_curve(self.archive_params, t)
 
 
-    @classmethod
-    def from_hdf(cls, *args, **kwargs):
-        raise NotImplementedError
+#    @classmethod
+#    def from_hdf(cls, *args, **kwargs):
+#        raise NotImplementedError
     
-    @classmethod
-    def from_df(cls, df, **kwargs):
-        raise NotImplementedError
+#    @classmethod
+#    def from_df(cls, df, **kwargs):
+#        raise NotImplementedError

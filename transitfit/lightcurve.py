@@ -252,7 +252,7 @@ class LightCurve(object):
             minflux = np.median(self.flux[self.close(i, width=0.2, only=True)])
             ror = np.sqrt((1 - minflux ) / 
                           (1 - params[4])) #corrected for dilution
-            params += [p.period, p.epoch, 0.5, ror, 0, 0]
+            params += [p.period, p.epoch, 0.5, ror, 0.01, 0]
 
         return params
         
@@ -345,6 +345,9 @@ class LightCurve(object):
                 store.close()
 
         self.dataframe.to_hdf(filename, '{}/lc'.format(path))
+        if self.rhostar is not None:
+            self.rhostar.to_hdf(filename, '{}/rhostar'.format(path))
+            self.dilution.to_hdf(filename, '{}/dilution'.format(path))
 
         store = pd.HDFStore(filename)
         attrs = store.get_storer('{}/lc'.format(path)).attrs
@@ -371,6 +374,14 @@ class LightCurve(object):
         store = pd.HDFStore(filename)
         try:
             df = store['{}/lc'.format(path)]
+            try:
+                rhostar = store['{}/rhostar'.format(path)]
+            except:
+                rhostar = None
+            try:
+                dilution = store['{}/dilution'.format(path)]
+            except:
+                dilution = None
             attrs = store.get_storer('{}/lc'.format(path)).attrs        
         except:
             store.close()
@@ -379,7 +390,8 @@ class LightCurve(object):
         planets = attrs.planets
         store.close()
 
-        return cls.from_df(df, texp=texp, planets=planets)
+        return cls.from_df(df, texp=texp, planets=planets, 
+                           rhostar=rhostar, dilution=dilution)
     
     @property
     def dataframe(self):
@@ -397,7 +409,7 @@ class LightCurve(object):
             
     @classmethod
     def from_df(cls, df, **kwargs):
-        new = cls(df['time'], df['flux'], df['flux_err'],
+        new = LightCurve(df['time'], df['flux'], df['flux_err'],
                   mask=df['mask'], detrend=False,
                   **kwargs)
 
