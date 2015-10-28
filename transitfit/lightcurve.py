@@ -269,6 +269,9 @@ class LightCurve(object):
         n = self.n_planets
         fig, axs = plt.subplots(n, 1, sharex=True)
 
+        if n==1:
+            axs = [axs]
+
         fig.set_figwidth(8)
         fig.set_figheight(2*n)
         

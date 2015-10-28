@@ -226,6 +226,12 @@ class TransitModel(object):
 
         depth = (1 - self.evaluate(params))*1e6
         
+        try:
+            len(fig.axes)
+            axes = fig.axes
+        except TypeError:
+            axes = [fig.axes]
+
         for i,ax in enumerate(fig.axes):
             tfold = self.lc.t_folded(i) * 24
             close = self.lc.close(i, width=widths[i], only=True)
