@@ -36,13 +36,14 @@ class TransitModel(object):
         ``tc + width*duration``, where ``tc`` is the transit center time.
 
     """
-    def __init__(self, lc, width=2, continuum_method='constant'):
+    def __init__(self, lc, width=2, continuum_method='constant',
+                 fix_zp=False):
 
         self.lc = lc
         self.width = width
         self.continuum_method = continuum_method
 
-
+        self.fix_zp = fix_zp
 
         self._bestfit = None
         self._samples = None
@@ -60,7 +61,8 @@ class TransitModel(object):
         
         """
         p = np.atleast_1d(p)
-        
+        if self.fix_zp:
+            return np.ones_like(t)
         return p[0]*np.ones_like(t)
         
 
@@ -111,14 +113,14 @@ class TransitModel(object):
         p0[:, 1] += np.random.normal(size=nw) #rhostar
         p0[:, 2] += np.random.normal(size=nw)*0.1 #q1
         p0[:, 3] += np.random.normal(size=nw)*0.1 #q2
-        p0[:, 4] += np.random.normal(size=nw)*0.1 #dilution
+        p0[:, 4] += np.random.normal(size=nw)*0.01 #dilution
 
         for i in range(self.lc.n_planets):
             p0[:, 5 + 6*i] += np.random.normal(size=nw)*1e-4 #period
             p0[:, 6 + 6*i] += np.random.normal(size=nw)*0.001 #epoch
             p0[:, 7 + 6*i] = np.random.random(size=nw)*0.8 # impact param
             p0[:, 8 + 6*i] *= (1 + np.random.normal(size=nw)*0.01) #rprs
-            p0[:, 9 + 6*i] = np.random.random(size=nw)*0.1 # eccentricity
+            p0[:, 9 + 6*i] = np.random.random(size=nw)*0.5 # eccentricity
             p0[:, 10 + 6*i] = np.random.random(size=nw)*2*np.pi
 
         p0 = np.absolute(p0) # no negatives allowed 
@@ -255,20 +257,26 @@ class TransitModel(object):
         return df
         
     def _make_samples(self):
-        flux_zp = self.sampler.flatchain[:,0]
-        rho = self.sampler.flatchain[:,1]
-        q1 = self.sampler.flatchain[:,2]
-        q2 = self.sampler.flatchain[:,3]
-        dilution = self.sampler.flatchain[:,4]
+        ok = np.isfinite(self.sampler.flatlnprobability)
+
+        flux_zp = self.sampler.flatchain[ok,0]
+        rho = self.sampler.flatchain[ok,1]
+        q1 = self.sampler.flatchain[ok,2]
+        q2 = self.sampler.flatchain[ok,3]
+        dilution = self.sampler.flatchain[ok,4]
 
         df = pd.DataFrame(dict(flux_zp=flux_zp,
                                rho=rho, q1=q1, q2=q2,
                                dilution=dilution))
+        df = pd.DataFrame()
+        #Keep things in the right order
+        for par in ['flux_zp', 'rho', 'q1', 'q2', 'dilution']:
+            df[par] = eval(par)
 
         for i in range(self.lc.n_planets):
             for j, par in enumerate(['period', 'epoch', 'b', 'rprs',
                                      'ecc', 'omega']):
-                column = self.sampler.flatchain[:, 5+j+i*6]
+                column = self.sampler.flatchain[ok, 5+j+i*6]
                 
                 if par=='omega':
                     column = column % (2*np.pi)
@@ -276,6 +284,7 @@ class TransitModel(object):
                 df['{}_{}'.format(par,i+1)] = column
 
         self._samples = df
+        self._lnprob = self.sampler.flatlnprobability[ok]
 
     def triangle(self, params=None, i=0, query=None, extent=0.999,
                  planet_only=False,
