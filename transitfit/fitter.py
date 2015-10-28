@@ -21,7 +21,6 @@ try:
 except ImportError:
     triangle=None
 
-from transit.transit import InvalidParameterError
     
 from .utils import lc_eval
 
@@ -151,7 +150,7 @@ class TransitModel(object):
     def lnlike(self, p):
         try:
             flux_model = self.evaluate(p)
-        except InvalidParameterError:
+        except ValueError:
             return -np.inf
         
         return (-0.5 * (flux_model - self.lc.flux)**2 / self.lc.flux_err**2).sum()
@@ -432,7 +431,7 @@ class BinaryTransitModel(TransitModel):
     """
     def __init__(self, lc, which=None):
         
-        if which = None:
+        if which is None:
             which = ['A'] * lc.n_planets
 
         def evaluate(self, p):

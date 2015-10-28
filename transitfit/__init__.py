@@ -6,6 +6,6 @@ except NameError:
     __TRANSITFIT_SETUP__ = False
 
 if not __TRANSITFIT_SETUP__:
-    from .lightcurve import LightCurve
+    from .lightcurve import LightCurve, Planet
     from .kepler import KeplerLightCurve
     from .fitter import TransitModel
