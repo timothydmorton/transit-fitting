@@ -37,13 +37,14 @@ class TransitModel(object):
 
     """
     def __init__(self, lc, width=2, continuum_method='constant',
-                 fix_zp=False):
+                 fix_zp=False, fix_circular=False):
 
         self.lc = lc
         self.width = width
         self.continuum_method = continuum_method
 
         self.fix_zp = fix_zp
+        self.fix_circular = fix_circular
 
         self._bestfit = None
         self._samples = None
@@ -169,6 +170,7 @@ class TransitModel(object):
 
         tot = 0
 
+
         # Apply stellar density prior if relevant.
         if self.lc.rhostar is not None:
             tot += np.log(self.lc.rhostar_pdf(rhostar))
@@ -187,6 +189,10 @@ class TransitModel(object):
                 return -np.inf
             if b < 0 or b > (1 + rprs):
                 return -np.inf
+
+            # If fixing circular fit, use this prior on eccentricity
+            if self.fix_circular:
+                tot += -0.5*e**2 / 0.0001**2
 
             factor = 1.0
             if e > 0:
