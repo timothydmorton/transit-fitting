@@ -131,7 +131,7 @@ class LightCurve(object):
 
     @property
     def f(self):
-        return self.f
+        return self.flux
     
     @property
     def time(self):
@@ -359,6 +359,7 @@ class LightCurve(object):
         self.dataframe.to_hdf(filename, '{}/lc'.format(path))
         if self.rhostar is not None:
             self.rhostar.to_hdf(filename, '{}/rhostar'.format(path))
+        if self.dilution is not None:
             self.dilution.to_hdf(filename, '{}/dilution'.format(path))
 
         store = pd.HDFStore(filename)

@@ -91,7 +91,9 @@ def lc_eval(p, t, texp=None):
     for i in range(n_planets):
         period, epoch, b, rprs, e, w = p[4+i*6:10+i*6]
         r = central.radius * rprs
-        body = Body(flux=0, radius=r, mass=0, period=period, t0=epoch,
+        #body = Body(flux=0, radius=r, mass=0, period=period, t0=epoch,
+        #           e=e, omega=w, b=b)
+        body = Body(radius=r, mass=0, period=period, t0=epoch,
                    e=e, omega=w, b=b)
         s.add_body(body)
 

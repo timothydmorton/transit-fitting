@@ -45,6 +45,9 @@ def kepler_planets(koinum, i):
     if type(i)==int:
         ilist = [i]
     elif i is None:
+        client = kplr.API()
+        koi = client.koi(koinum + 0.01)
+        count = koi.koi_count     
         ilist = range(1, count+1)
     else:
         ilist = i

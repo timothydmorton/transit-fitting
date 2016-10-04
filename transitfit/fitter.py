@@ -16,11 +16,7 @@ DAY = 86400
 
 import emcee
 
-try:
-    import triangle
-except ImportError:
-    triangle=None
-
+import corner
     
 from .utils import lc_eval
 
@@ -37,7 +33,7 @@ class TransitModel(object):
 
     """
     def __init__(self, lc, width=2, continuum_method='constant',
-                 fix_zp=False, fix_circular=False):
+                 fix_zp=False, fix_circular=False, no_dilution=False):
 
         self.lc = lc
         self.width = width
@@ -45,6 +41,7 @@ class TransitModel(object):
 
         self.fix_zp = fix_zp
         self.fix_circular = fix_circular
+        self.no_dilution = no_dilution
 
         self._bestfit = None
         self._samples = None
@@ -117,8 +114,10 @@ class TransitModel(object):
         p0[:, 4] += np.random.normal(size=nw)*0.01 #dilution
 
         for i in range(self.lc.n_planets):
-            p0[:, 5 + 6*i] += np.random.normal(size=nw)*1e-4 #period
-            p0[:, 6 + 6*i] += np.random.normal(size=nw)*0.001 #epoch
+            per, per_unc = self.lc.planets[i]._period
+            ep, ep_unc = self.lc.planets[i]._epoch
+            p0[:, 5 + 6*i] += np.random.normal(size=nw)*per_unc*0.01 #period
+            p0[:, 6 + 6*i] += np.random.normal(size=nw)*ep_unc*0.01 #epoch
             p0[:, 7 + 6*i] = np.random.random(size=nw)*0.8 # impact param
             p0[:, 8 + 6*i] *= (1 + np.random.normal(size=nw)*0.01) #rprs
             p0[:, 9 + 6*i] = np.random.random(size=nw)*0.5 # eccentricity
@@ -151,6 +150,8 @@ class TransitModel(object):
         return prior + like
                     
     def lnlike(self, p):
+        if self.no_dilution:
+            p[4] = 0.
         try:
             flux_model = self.evaluate(p)
         except ValueError:
@@ -175,8 +176,9 @@ class TransitModel(object):
         if self.lc.rhostar is not None:
             tot += np.log(self.lc.rhostar_pdf(rhostar))
             
-        if self.lc.dilution is not None:
-            tot += np.log(self.lc.dilution_pdf(dilution))
+        if not self.no_dilution:
+            if self.lc.dilution is not None:
+                tot += np.log(self.lc.dilution_pdf(dilution))
 
         for i in xrange(self.lc.n_planets):
             period, epoch, b, rprs, e, w = p[5+i*6:11+i*6]
@@ -292,7 +294,7 @@ class TransitModel(object):
         self._samples = df
         self._lnprob = self.sampler.flatlnprobability[ok]
 
-    def triangle(self, params=None, i=0, query=None, extent=0.999,
+    def corner(self, params=None, i=0, query=None, extent=0.999,
                  planet_only=False,
                  **kwargs):
         """
@@ -320,9 +322,6 @@ class TransitModel(object):
             Figure oject containing corner plot.
             
         """
-        if triangle is None:
-            raise ImportError('please run "pip install triangle_plot".')
-        
         if params is None:
             if planet_only:
                 params = []
@@ -354,8 +353,8 @@ class TransitModel(object):
                     maxval = kwargs['truths'][i] + 0.05*datarange
             extents.append((minval,maxval))
             
-        return triangle.corner(df[params], labels=params, 
-                               extents=extents, **kwargs)
+        return corner.corner(df[params], labels=params, 
+                               range=extents, **kwargs)
 
     def save_hdf(self, filename, path='', overwrite=False, append=False):
         """Saves object data to HDF file (only works if MCMC is run)
@@ -498,7 +497,7 @@ class BinaryTransitModel(TransitModel):
         def _make_samples(self):
             pass
 
-        def triangle(self, params=None, **kwargs):
+        def corner(self, params=None, **kwargs):
             # Set default params appropriately
             
-            super(BinaryTransitModel, self).triangle(params, **kwargs)
+            super(BinaryTransitModel, self).corner(params, **kwargs)
