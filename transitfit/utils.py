@@ -1,7 +1,10 @@
 from __future__ import print_function, division
 
 import numpy as np
-from transit import Central, System, Body
+try:
+    from transit import Central, System, Body
+except ImportError:
+    pass
 
 def dilution_samples(s, which='A', band='Kepler'):
     """
