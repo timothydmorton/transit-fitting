@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 from numpy import ma
 import pandas as pd
+import logging
 
 import os, os.path
 
@@ -11,7 +12,10 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy.stats import gaussian_kde
 
-from transit import Central, System, Body
+try:
+    from transit import Central, System, Body
+except ImportError:
+    logging.warning('Transit package not imported.  Will not be able to fit.')
 
 from .utils import t_folded, lc_eval
 
